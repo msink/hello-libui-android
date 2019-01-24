@@ -1,9 +1,8 @@
 plugins {
-    id("kotlin-multiplatform")
+    kotlin("multiplatform")
 }
 
 repositories {
-    maven { url = uri("https://dl.bintray.com/kotlin/kotlin-eap") }
     mavenCentral()
 }
 

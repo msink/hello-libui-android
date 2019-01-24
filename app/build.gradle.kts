@@ -1,5 +1,5 @@
 plugins {
-    id("kotlin-multiplatform")
+    kotlin("multiplatform")
     id("com.android.application")
     id("kotlin-android-extensions")
 }
@@ -7,8 +7,6 @@ plugins {
 repositories {
     google()
     jcenter()
-    maven { url = uri("https://dl.bintray.com/kotlin/kotlin-eap") }
-    maven { url = uri("https://dl.bintray.com/msink/kotlin-dev") }
     mavenCentral()
 }
 
@@ -86,7 +84,7 @@ kotlin {
     sourceSets.create("desktopMain") {
         dependencies {
             implementation(project(":lib-hello"))
-            implementation("com.github.msink:libui:0.2.0-dev")
+            implementation("com.github.msink:libui:0.1.2")
         }
     }
     val desktopTarget = when {
