@@ -12,40 +12,37 @@ configurations.create("compileClasspath")
 val os = org.gradle.internal.os.OperatingSystem.current()!!
 
 kotlin {
-    sourceSets["commonMain"].apply {
+    val commonMain by sourceSets.getting {
         dependencies {
             implementation(kotlin("stdlib-common"))
         }
     }
-    sourceSets["commonTest"].apply {
+    val commonTest by sourceSets.getting {
         dependencies {
             implementation(kotlin("test-common"))
             implementation(kotlin("test-annotations-common"))
         }
     }
-    sourceSets.create("androidMain") {
+
+    jvm("android")
+    val androidMain by sourceSets.getting {
         dependencies {
             implementation(kotlin("stdlib-jdk8"))
         }
     }
-    sourceSets.create("androidTest") {
+    val androidTest by sourceSets.getting {
         dependencies {
             implementation(kotlin("test"))
             implementation(kotlin("test-junit"))
         }
     }
 
-    jvm("android")
-
-    val desktopTarget = when {
+    when {
         os.isWindows -> mingwX64("desktop")
         os.isMacOsX -> macosX64("desktop")
         os.isLinux -> linuxX64("desktop")
         else -> throw Error("Unknown host")
-    }
-    configure(listOf(desktopTarget)) {
-        binaries {
-            sharedLib(listOf(DEBUG))
-        }
+    }.binaries {
+        sharedLib()
     }
 }

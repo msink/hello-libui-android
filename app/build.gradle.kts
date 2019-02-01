@@ -27,81 +27,73 @@ android {
     }
 }
 
-dependencies {
-    implementation(project(":lib-hello"))
-    implementation("com.android.support:appcompat-v7:28.0.0")
-    implementation("com.android.support.constraint:constraint-layout:1.1.3")
-    androidTestImplementation("com.android.support.test:runner:1.0.2")
-}
-
-val os = org.gradle.internal.os.OperatingSystem.current()!!
-
-val resourcesDir = "$projectDir/src/desktopMain/resources"
-val windowsResources = "$buildDir/resources/app.res"
-
-val compileWindowsResources by tasks.registering(Exec::class) {
-    onlyIf { os.isWindows }
-
-    val konanUserDir = System.getenv("KONAN_DATA_DIR") ?: "${System.getProperty("user.home")}/.konan"
-    val konanLlvmDir = "$konanUserDir/dependencies/msys2-mingw-w64-x86_64-gcc-7.3.0-clang-llvm-lld-6.0.1/bin"
-    val rcFile = file("$resourcesDir/app.rc")
-
-    inputs.file(rcFile)
-    outputs.file(file(windowsResources))
-    commandLine("cmd", "/c", "windres", rcFile, "-O", "coff", "-o", windowsResources)
-    environment("PATH", "c:/msys64/mingw64/bin;$konanLlvmDir;${System.getenv("PATH")}")
-}
-
 kotlin {
-    // common
-    sourceSets["commonMain"].apply {
+    val commonMain by sourceSets.getting {
         dependencies {
             implementation(kotlin("stdlib-common"))
+            implementation(project(":lib-hello"))
         }
     }
-    sourceSets["commonTest"].apply {
+    val commonTest by sourceSets.getting {
         dependencies {
-    		implementation(kotlin("test-common"))
-    		implementation(kotlin("test-annotations-common"))
+            implementation(kotlin("test-common"))
+            implementation(kotlin("test-annotations-common"))
         }
     }
 
-    // android
-    sourceSets.create("androidMain") {
+    android("android")
+    val androidMain by sourceSets.getting {
         dependencies {
             implementation(kotlin("stdlib"))
+            implementation("com.android.support:appcompat-v7:28.0.0")
+            implementation("com.android.support.constraint:constraint-layout:1.1.3")
         }
     }
-    sourceSets.create("androidTest") {
+    val androidTest by sourceSets.getting {
         dependencies {
             implementation(kotlin("test"))
             implementation(kotlin("test-junit"))
+            implementation("com.android.support.test:runner:1.0.2")
         }
     }
-    android("android")
 
-    // desktop
-    sourceSets.create("desktopMain") {
-        dependencies {
-            implementation(project(":lib-hello"))
-            implementation("com.github.msink:libui:0.1.2")
-        }
-    }
-    val desktopTarget = when {
+    val os = org.gradle.internal.os.OperatingSystem.current()!!
+    when {
         os.isWindows -> mingwX64("desktop")
         os.isMacOsX -> macosX64("desktop")
         os.isLinux -> linuxX64("desktop")
         else -> throw Error("Unknown host")
-    }
-    configure(listOf(desktopTarget)) {
-        binaries {
-            executable(listOf(DEBUG)) {
-                entryPoint("sample.main")
-                if (os.isWindows) {
-                    tasks.named("compileKotlinDesktop") { dependsOn(compileWindowsResources) }
-                    linkerOpts(windowsResources, "-mwindows")
-                }
-            }
+    }.binaries.executable {
+        entryPoint("sample.main")
+        if (os.isWindows) {
+            windowsResources("app.rc")
+            linkerOpts("-mwindows")
         }
     }
+    val desktopMain by sourceSets.getting {
+        dependencies {
+            implementation("com.github.msink:libui:0.1.2")
+        }
+    }
+}
+
+fun org.jetbrains.kotlin.gradle.plugin.mpp.Executable.windowsResources(rcFileName: String) {
+    val taskName = linkTaskName.replaceFirst("link", "windres")
+    val inFile = compilation.defaultSourceSet.resources.sourceDirectories.singleFile.resolve(rcFileName)
+    val outFile = buildDir.resolve("processedResources/$taskName.res")
+
+    val windresTask = tasks.create<Exec>(taskName) {
+        val konanUserDir = System.getenv("KONAN_DATA_DIR") ?: "${System.getProperty("user.home")}/.konan"
+        val konanLlvmDir = "$konanUserDir/dependencies/msys2-mingw-w64-x86_64-gcc-7.3.0-clang-llvm-lld-6.0.1/bin"
+
+        inputs.file(inFile)
+        outputs.file(outFile)
+        commandLine("$konanLlvmDir/windres", inFile, "-D_${buildType.name}", "-O", "coff", "-o", outFile)
+        environment("PATH", "$konanLlvmDir;${System.getenv("PATH")}")
+
+        dependsOn(compilation.compileKotlinTask)
+    }
+
+    linkTask.dependsOn(windresTask)
+    linkerOpts(outFile.toString())
 }
