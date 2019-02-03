@@ -54,6 +54,7 @@ kotlin {
             implementation(kotlin("test"))
             implementation(kotlin("test-junit"))
             implementation("com.android.support.test:runner:1.0.2")
+            implementation(project(":lib-hello")) // TODO: why???
         }
     }
 
