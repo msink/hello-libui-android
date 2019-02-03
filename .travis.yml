@@ -1,0 +1,16 @@
+language: java
+
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      jdk: openjdk8
+      addons:
+        apt:
+          packages:
+            - libgtk-3-dev
+    - os: osx
+      osx_image: xcode10
+
+script:
+  - ./gradlew build
