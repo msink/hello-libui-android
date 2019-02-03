@@ -1,7 +1,7 @@
 version: 'build #{build}'
 
-install:
-  - cmd: '"C:\Program Files (x86)\Android\android-sdk\tools\bin\sdkmanager.bat" --list'
+environment:
+    ANDROID_HOME: C:\Program Files (x86)\Android\android-sdk
 
 build_script:
   - gradlew build
